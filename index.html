@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Simple Interest Calculator (Monthly)</title>
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#e76f51">
+
+  <style>
+    /* All your existing CSS from before */
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background:#fff6f0;
+      min-height:100vh;
+      padding:15px;
+      color:#333;
+    }
+    .container { max-width:480px; margin:30px auto; background:#fffdfb; border-radius:14px; box-shadow:0 6px 18px rgba(0,0,0,0.08); overflow:hidden; }
+    .header { background:linear-gradient(135deg,#f4a261,#e76f51); color:white; padding:18px; text-align:center; font-size:1.4rem; font-weight:600; }
+    .content, .result-screen { padding:24px; min-height:520px; }
+    .form-group { margin-bottom:20px; }
+    label { display:block; margin-bottom:8px; font-weight:500; }
+    input { width:100%; padding:12px; border:1.5px solid #e6cfc3; border-radius:8px; font-size:1rem; background:#fffaf7; }
+    input:focus { outline:none; border-color:#e76f51; box-shadow:0 0 0 3px rgba(231,111,81,0.18); }
+    .info-text { color:#6b4f45; margin-top:6px; font-size:0.95rem; }
+    .buttons { display:flex; gap:12px; margin-top:28px; }
+    button { flex:1; padding:14px; font-size:1.05rem; border:none; border-radius:10px; cursor:pointer; }
+    .btn-calculate { background:#e76f51; color:white; }
+    .btn-refresh { background:#f1d3c2; color:#5a3e34; }
+    .result-title { text-align:center; color:#e76f51; margin-bottom:22px; font-size:1.4rem; font-weight:600; }
+    .result-item { display:flex; justify-content:space-between; padding:14px 0; border-bottom:1px solid #f0ded6; font-size:1.05rem; }
+    .result-amount { color:#2e7d32; font-weight:600; }
+    .period-info, .rate-info { margin-top:20px; padding:16px; background:#fff3eb; border-radius:10px; text-align:center; line-height:1.6; color:#5a3e34; }
+    .date-summary { margin-bottom:18px; padding:14px; background:#fff1e8; border-radius:10px; text-align:center; color:#6b4f45; font-size:0.95rem; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">Simple Interest Calculator</div>
+
+  <!-- INPUT SCREEN -->
+  <div class="content" id="inputScreen">
+    <div class="form-group">
+      <label>From Date (DD/MM/YYYY)</label>
+      <input type="text" id="fromDate" placeholder="DD/MM/YYYY" inputmode="numeric">
+    </div>
+
+    <div class="form-group">
+      <label>To Date</label>
+      <div class="info-text" id="toDateDisplay"></div>
+    </div>
+
+    <div class="form-group">
+      <label>Net Amount (₹)</label>
+      <input type="number" id="principal" min="1" step="1">
+    </div>
+
+    <div class="form-group">
+      <label>Monthly Interest Rate (%)</label>
+      <input type="number" id="rate" step="0.01" min="0.01" value="1.5">
+    </div>
+
+    <div class="buttons">
+      <button class="btn-calculate" onclick="calculateInterest()">Calculate</button>
+    </div>
+  </div>
+
+  <!-- RESULT SCREEN -->
+  <div class="result-screen" id="resultScreen" style="display:none;">
+    <div class="result-title">Calculation Result</div>
+
+    <div class="date-summary">
+      From: <strong id="resFromDate"></strong><br>
+      To: <strong id="resToDate"></strong>
+    </div>
+
+    <div class="result-item">
+      <span>Net Amount</span>
+      <span class="result-amount" id="resPrincipal"></span>
+    </div>
+    <div class="result-item">
+      <span>Interest</span>
+      <span class="result-amount" id="resInterest"></span>
+    </div>
+    <div class="result-item">
+      <span>Total Amount</span>
+      <span class="result-amount" id="resTotal"></span>
+    </div>
+
+    <div class="period-info" id="periodInfo"></div>
+
+    <div class="rate-info">
+      Monthly Interest Rate Used: <strong id="resRate"></strong><br>
+      Monthly Interest Amount: <strong id="monthlyInterest"></strong><br>
+      Daily Interest (30-day basis): <strong id="dailyInterest"></strong>
+    </div>
+
+    <div class="buttons">
+      <button class="btn-refresh" onclick="resetForm()">New Calculation</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const today = new Date();
+today.setHours(0,0,0,0);
+toDateDisplay.textContent = "Today's date: " + today.toLocaleDateString("en-GB");
+
+function formatINR(num, decimals = 0) {
+  return "₹" + Number(num).toLocaleString("en-IN", {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  });
+}
+
+function parseDDMMYYYY(str) {
+  if (!/^\d{2}\/\d{2}\/\d{4}$/.test(str)) return null;
+  const [d,m,y] = str.split("/").map(Number);
+  const date = new Date(y, m - 1, d);
+  date.setHours(0,0,0,0);
+  if (date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d) return null;
+  return date;
+}
+
+fromDate.addEventListener("input", e => {
+  let raw = e.target.value.replace(/\D/g, "").slice(0, 8);
+  let d = raw.slice(0, 2);
+  let m = raw.slice(2, 4);
+  let y = raw.slice(4);
+  if (d.length === 2) d = Math.min(Math.max(d, 1), 31).toString().padStart(2,"0");
+  if (m.length === 2) m = Math.min(Math.max(m, 1), 12).toString().padStart(2,"0");
+  e.target.value = d + (m ? "/" + m : "") + (y ? "/" + y : "");
+});
+
+function calculateInterest() {
+  const from = parseDDMMYYYY(fromDate.value.trim());
+  if (!from || from > today) return alert("Invalid From Date");
+
+  const p = Math.floor(Number(principal.value));
+  if (!p) return alert("Invalid Net Amount");
+
+  const r = Number(rate.value);
+  if (!r) return alert("Invalid Interest Rate");
+
+  const days = Math.floor((today - from) / 86400000);
+  const months = Math.floor(days / 30);
+  const extra = days % 30;
+  const time = months + extra / 30;
+
+  const interestRaw = p * (r / 100) * time;
+  const interest = Math.round(interestRaw);
+  const total = p + interest;
+
+  resFromDate.textContent = from.toLocaleDateString("en-GB");
+  resToDate.textContent = today.toLocaleDateString("en-GB");
+  resPrincipal.textContent = formatINR(p);
+  resInterest.textContent = formatINR(interest);
+  resTotal.textContent = formatINR(total);
+
+  periodInfo.textContent = `Period: ${months} months and ${extra} days (${days} days total)`;
+
+  resRate.textContent = r.toFixed(2) + "%";
+  monthlyInterest.textContent = formatINR(p * r / 100, 2);
+  dailyInterest.textContent = formatINR((p * r / 100) / 30, 2);
+
+  inputScreen.style.display = "none";
+  resultScreen.style.display = "block";
+  window.scrollTo(0,0);
+}
+
+function resetForm() {
+  fromDate.value = "";
+  principal.value = "";
+  rate.value = "1.5";
+  inputScreen.style.display = "block";
+  resultScreen.style.display = "none";
+  window.scrollTo(0,0);
+}
+</script>
+</body>
+</html>
