@@ -147,10 +147,27 @@ function calculateInterest() {
   const r = Number(rate.value);
   if (!r) return alert("Invalid Interest Rate");
 
-  const days = Math.floor((today - from) / 86400000);
-  const months = Math.floor(days / 30);
-  const extra = days % 30;
-  const time = months + extra / 30;
+  // Calculate calendar months and remaining days
+  let months = 0;
+  let tempDate = new Date(from);
+  
+  // Count full calendar months
+  while (true) {
+    const nextMonth = new Date(tempDate);
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    
+    if (nextMonth > today) break;
+    
+    months++;
+    tempDate = nextMonth;
+  }
+  
+  // Calculate remaining days
+  const remainingDays = Math.floor((today - tempDate) / 86400000);
+  const totalDays = Math.floor((today - from) / 86400000);
+  
+  // Calculate time factor: full months + (remaining days / 30)
+  const time = months + (remainingDays / 30);
 
   const interestRaw = p * (r / 100) * time;
   const interest = Math.round(interestRaw);
@@ -162,7 +179,7 @@ function calculateInterest() {
   resInterest.textContent = formatINR(interest);
   resTotal.textContent = formatINR(total);
 
-  periodInfo.textContent = `Period: ${months} months and ${extra} days (${days} days total)`;
+  periodInfo.textContent = `Period: ${months} months and ${remainingDays} days (${totalDays} days total)`;
 
   resRate.textContent = r.toFixed(2) + "%";
   monthlyInterest.textContent = formatINR(p * r / 100, 2);
@@ -183,4 +200,4 @@ function resetForm() {
 }
 </script>
 </body>
-</html>
+  </html>
