@@ -62,7 +62,7 @@
 
     <div class="form-group">
       <label>Monthly Interest Rate (%)</label>
-      <input type="number" id="rate" step="0.01" min="0.01" value="1.25">
+      <input type="number" id="rate" step="0.01" min="0.01" value="1.5">
     </div>
 
     <div class="buttons">
@@ -193,7 +193,7 @@ function calculateInterest() {
 function resetForm() {
   fromDate.value = "";
   principal.value = "";
-  rate.value = "1.5";
+  rate.value = "1.25";
   inputScreen.style.display = "block";
   resultScreen.style.display = "none";
   window.scrollTo(0,0);
